@@ -82,14 +82,14 @@ class Caixa extends BoletoAbstract
     /**
      * Define o número da conta
      *
-     * Overrided porque o cedente da Caixa TEM QUE TER 6 posições, senão não é válido
+     * Overrided porque o cedente da Caixa TEM QUE TER 7 posições, senão não é válido
      *
      * @param int $conta
      * @return BoletoAbstract
      */
     public function setConta($conta)
     {
-        $this->conta = self::zeroFill($conta, 6);
+        $this->conta = self::zeroFill($conta, 7);
         return $this;
     }
 
