@@ -49,7 +49,7 @@ abstract class BoletoAbstract
      * @var array Nome espécie das moedas
      */
     protected static $especie = array(
-        self::MOEDA_REAL => 'REAL'
+        self::MOEDA_REAL => 'R$'
     );
 
     /**

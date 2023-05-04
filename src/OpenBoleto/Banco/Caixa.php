@@ -64,7 +64,7 @@ class Caixa extends BoletoAbstract
      * Define as carteiras disponíveis para este banco
      * @var array
      */
-    protected $carteiras = array('SR','CR', 'RG');
+    protected $carteiras = ['SR', 'CR', 'RG'];
 
     /**
      * Nome do arquivo de template a ser usado
@@ -85,6 +85,7 @@ class Caixa extends BoletoAbstract
      * Overrided porque o cedente da Caixa TEM QUE TER 7 posições, senão não é válido
      *
      * @param int $conta
+     *
      * @return BoletoAbstract
      */
     public function setConta($conta)
@@ -96,8 +97,8 @@ class Caixa extends BoletoAbstract
     /**
      * Gera o Nosso Número.
      *
-     * @throws Exception
      * @return string
+     * @throws Exception
      */
     protected function gerarNossoNumero()
     {
@@ -107,16 +108,11 @@ class Caixa extends BoletoAbstract
         // Inicia o número de acordo com o tipo de cobrança, provavelmente só será usado Sem Registro, mas
         // se futuramente o projeto permitir a geração de lotes para inclusão, o tipo registrado pode ser útil
         // 1 => registrada, 2 => sem registro. O número 4 indica que é o beneficiário que está gerando o boleto
-        $carteira = $this->getCarteira();
-        if ($carteira == 'SR'){
-            $numero = '24';
-        } else {
-            $numero = '14';
-        }
+        $numero = ($this->getCarteira() == 'SR') ? '24' : '14';
 
         // As 15 próximas posições no nosso número são a critério do beneficiário, utilizando o sequencial
         // Depois, calcula-se o código verificador por módulo 11
-        $modulo = self::modulo11($numero.self::zeroFill($sequencial, 15));
+        $modulo = self::modulo11($numero . self::zeroFill($sequencial, 15));
         $numero .= self::zeroFill($sequencial, 15) . '-' . $modulo['digito'];
 
         return $numero;
@@ -124,23 +120,23 @@ class Caixa extends BoletoAbstract
 
     /**
      * Método para gerar o código da posição de 20 a 44
-     * 
+     *
      * O campo livre da Caixa é cheio de nove horas. Transcrição do manual:
-     * O Campo Livre contém 25 posições dispostas da seguinte forma:  
-     * 
-     * Descrição -------------------- Posição no Código de Barras --- Observação 
-     * 
-     * Código do Beneficiário ------- Posição: 20-25 
-     * DV do Código do Beneficiário - Posição: 26-26 ---------------- ANEXO VI 
-     * Nosso Número – Seqüência 1 --- Posição: 27-29 ---------------- 3ª a 5ª posição do Nosso Número 
-     * Constante 1 ------------------ Posição: 30-30 ---------------- 1ª posição do Nosso Numero: 
-     *                                                                (1-Registrada / 2-Sem Registro) 
-     * Nosso Número – Seqüência 2 --- Posição: 31-33 ---------------- 6ª a 8ª posição do Nosso Número 
-     * Constante 2 ------------------ Posição: 34-34 ---------------- 2ª posição do Nosso Número: 
-     *                                                                Ident da Emissão do Boleto (4-Beneficiário) 
-     * Nosso Número – Seqüência 3 --- Posição: 35-43 ---------------- 9ª a 17ª posição do Nosso Número 
-     * DV do Campo Livre ------------ Posição: 44-44 ---------------- Item 5.3.1 (abaixo) 
-     * 
+     * O Campo Livre contém 25 posições dispostas da seguinte forma:
+     *
+     * Descrição -------------------- Posição no Código de Barras --- Observação
+     *
+     * Código do Beneficiário ------- Posição: 20-25
+     * DV do Código do Beneficiário - Posição: 26-26 ---------------- ANEXO VI
+     * Nosso Número – Seqüência 1 --- Posição: 27-29 ---------------- 3ª a 5ª posição do Nosso Número
+     * Constante 1 ------------------ Posição: 30-30 ---------------- 1ª posição do Nosso Numero:
+     *                                                                (1-Registrada / 2-Sem Registro)
+     * Nosso Número – Seqüência 2 --- Posição: 31-33 ---------------- 6ª a 8ª posição do Nosso Número
+     * Constante 2 ------------------ Posição: 34-34 ---------------- 2ª posição do Nosso Número:
+     *                                                                Ident da Emissão do Boleto (4-Beneficiário)
+     * Nosso Número – Seqüência 3 --- Posição: 35-43 ---------------- 9ª a 17ª posição do Nosso Número
+     * DV do Campo Livre ------------ Posição: 44-44 ---------------- Item 5.3.1 (abaixo)
+     *
      * @return string
      * @throws \OpenBoleto\Exception
      */
@@ -149,17 +145,29 @@ class Caixa extends BoletoAbstract
         $nossoNumero = $this->gerarNossoNumero();
         $beneficiario = $this->getConta();
 
+        /**
+         * NOTA 3 – CÓDIGO DO BENEFICIÁRIO (posições 20 a 26)
+         *
+         * É composto por 7 posições, devendo ser obedecidas as seguintes regras de preenchimento:
+         * - Para beneficiário com código entre as faixas 000001 e 999999, utilizar as posições 20 a 25 e
+         * calcular o DV do Código do Beneficiário, a ser informado na posição 26, através do Modulo 11, conforme
+         * Anexo VI.
+         *
+         * - Para beneficiário com código a partir da faixa 1100000, utilizar as posições 20 a 26, sem necessidade
+         * de cálculo do DV do Código do Beneficiário.
+         */
+
         // Código do beneficiário + DV]
-        $modulo = self::modulo11($beneficiario);
-        $campoLivre = $beneficiario . $modulo['digito'];
+        $campoLivre = $beneficiario;
+
+        if (strlen($beneficiario) < 7) {
+            $modulo = self::modulo11($beneficiario);
+            $campoLivre = $beneficiario . $modulo['digito'];
+        }
 
         // Sequencia 1 (posições 3-5 NN) + Constante 1 (1 => registrada, 2 => sem registro)
-        $carteira = $this->getCarteira();
-        if ($carteira == 'SR'){
-            $constante = '2';
-        } else {
-            $constante = '1';
-        }
+        $constante = $this->getCarteira() == 'SR' ? '2' : '1';
+
         $campoLivre .= substr($nossoNumero, 2, 3) . $constante;
 
         // Sequencia 2 (posições 6-8 NN) + Constante 2 (4-Beneficiário) 
@@ -172,7 +180,6 @@ class Caixa extends BoletoAbstract
         $modulo = self::modulo11($campoLivre);
         $campoLivre .= $modulo['digito'];
 
-       return $campoLivre;
+        return $campoLivre;
     }
-
 }
