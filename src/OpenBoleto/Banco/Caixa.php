@@ -58,7 +58,7 @@ class Caixa extends BoletoAbstract
      * Linha de local de pagamento
      * @var string
      */
-    protected $localPagamento = 'PREFERENCIALMENTE NAS CASAS LOTÉRICAS ATÉ O VALOR LIMITE';
+    protected $localPagamento = 'EM TODA A REDE BANCÁRIA E SEUS CORRESPONDENTES ATÉ O VALOR LIMITE';
 
     /**
      * Define as carteiras disponíveis para este banco
