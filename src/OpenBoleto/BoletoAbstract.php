@@ -1503,7 +1503,14 @@ abstract class BoletoAbstract
     {
         if (!$this->getContraApresentacao()) {
             $date = new DateTime('1997-10-07');
-            return $date->diff($this->getDataVencimento())->days;
+            $return = $date->diff($this->getDataVencimento())->days;
+
+            // Verifica se o fator é maior que 9999
+            if ($return > 9999) {
+                $return = $return - 9000;
+            }
+            
+            return $return;
         } else {
             return '0000';
         }
