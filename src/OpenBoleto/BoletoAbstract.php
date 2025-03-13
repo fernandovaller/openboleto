@@ -1502,15 +1502,18 @@ abstract class BoletoAbstract
     protected function getFatorVencimento()
     {
         if (!$this->getContraApresentacao()) {
-            $date = new DateTime('1997-10-07');
-            $return = $date->diff($this->getDataVencimento())->days;
+            $dataVencimento = $this->getDataVencimento();
+            $dataBaseAntiga = new DateTime('1997-10-07');
+            $dataLimite = new DateTime('2025-02-22');
+            $dataBaseNova = new DateTime('2024-12-31');
 
-            // Verifica se o fator é maior que 9999
-            if ($return > 9999) {
-                $return = $return - 9000;
+            if ($dataVencimento < $dataLimite) {
+                $fatorVencimento = $dataBaseAntiga->diff($dataVencimento)->days;
+            } else {
+                $fatorVencimento = $dataBaseNova->diff($dataVencimento)->days + 1000;
             }
-            
-            return $return;
+
+            return str_pad($fatorVencimento, 4, '0', STR_PAD_LEFT);
         } else {
             return '0000';
         }
