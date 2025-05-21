@@ -43,7 +43,7 @@ abstract class BoletoAbstract
     /**
      * Moedas disponíveis
      */
-    const MOEDA_REAL = 9;
+    public const MOEDA_REAL = 9;
 
     /**
      * @var array Nome espécie das moedas
@@ -226,7 +226,7 @@ abstract class BoletoAbstract
      * @var Agente
      */
     protected $cedente;
-    
+
     /**
      * Entidade sacada (de quem se cobra o boleto)
      * @var Agente
@@ -280,7 +280,7 @@ abstract class BoletoAbstract
      * @var string
      */
     protected $logoBanco;
-    
+
     /**
     * Array que sera exportada pelo metodo getData
     * @var array
@@ -292,17 +292,16 @@ abstract class BoletoAbstract
      * @var array
      */
     protected $imprimeInstrucoesImpressao = true;
-    
-    
+
+
     /**
      * Construtor
      *
      * @param array $params Parâmetros iniciais para construção do objeto
      */
-    public function  __construct($params = array())
+    public function __construct($params = array())
     {
-        foreach ($params as $param => $value)
-        {
+        foreach ($params as $param => $value) {
             if (method_exists($this, 'set' . $param)) {
                 $this->{'set' . $param}($value);
             }
@@ -609,7 +608,7 @@ abstract class BoletoAbstract
         $this->numeroDocumento = $numeroDocumento;
         return $this;
     }
-    
+
     /**
      * Define o Número da parcela
      *
@@ -1074,7 +1073,7 @@ abstract class BoletoAbstract
     {
         return $this->resourcePath;
     }
-    
+
     /**
      * Define se imprime ou não as instruções de impressão
      *
@@ -1086,7 +1085,7 @@ abstract class BoletoAbstract
         $this->imprimeInstrucoesImpressao = $imprimeInstrucoesImpressao;
         return $this;
     }
-    
+
     /**
      * Retorna se imprime ou não as instruções de impressão
      *
@@ -1164,7 +1163,7 @@ abstract class BoletoAbstract
      *
      * @throws Exception
      */
-    public final function setNossoNumero()
+    final public function setNossoNumero()
     {
         throw new Exception('Não é possível definir o nosso número diretamente. Utilize o método setSequencial.');
     }
@@ -1194,14 +1193,14 @@ abstract class BoletoAbstract
      *
      * @return string
      */
-    protected abstract function gerarNossoNumero();
+    abstract protected function gerarNossoNumero();
 
     /**
      * Método onde qualquer boleto deve extender para gerar o código da posição de 20 a 44
      *
      * @return string
      */
-    public abstract function getCampoLivre();
+    abstract public function getCampoLivre();
 
     /**
      * Em alguns bancos, a visualização de alguns campos do boleto são diferentes.
@@ -1271,7 +1270,7 @@ abstract class BoletoAbstract
             'instrucoes' => (array) $this->getInstrucoes() + array(null, null, null, null, null, null, null, null), // Max: 8 linhas
             'local_pagamento' => $this->getLocalPagamento(),
             'numero_documento' => $this->getNumeroDocumento(),
-            'agencia_codigo_cedente'=> $this->getAgenciaCodigoCedente(),
+            'agencia_codigo_cedente' => $this->getAgenciaCodigoCedente(),
             'nosso_numero' => $this->getNossoNumero(),
             'especie_doc' => $this->getEspecieDoc(),
             'aceite' => $this->getAceite(),
@@ -1282,11 +1281,11 @@ abstract class BoletoAbstract
             'numero_febraban' => $this->getNumeroFebraban(),
             'imprime_instrucoes_impressao' => $this->getImprimeInstrucoesImpressao()
         );
-        
-        
-        
-        $this->data = array_merge($this->data,$this->getViewVars());
-        
+
+
+
+        $this->data = array_merge($this->data, $this->getViewVars());
+
         extract($this->data);
 
         // Ignore errors inside the template
@@ -1468,7 +1467,7 @@ abstract class BoletoAbstract
         '<div class="black thin"></div>' .
         '</div>';
     }
-    
+
     /**
     * Retorna os dados do boleto em um array para ser usado externamente
     *
@@ -1476,11 +1475,10 @@ abstract class BoletoAbstract
     */
     public function getData()
     {
-        if(empty($this->data))
-        {
-            $this->getOutput();  
-        }  
-        return $this->data;               
+        if(empty($this->data)) {
+            $this->getOutput();
+        }
+        return $this->data;
     }
 
     /**
@@ -1502,18 +1500,35 @@ abstract class BoletoAbstract
     protected function getFatorVencimento()
     {
         if (!$this->getContraApresentacao()) {
-            $dataVencimento = $this->getDataVencimento();
-            $dataBaseAntiga = new DateTime('1997-10-07');
-            $dataLimite = new DateTime('2025-02-22');
-            $dataBaseNova = new DateTime('2024-12-31');
+            // Definindo a data base inicial (07/10/1997)
+            $dataBaseInicial = new \DateTime('1997-10-07');
 
-            if ($dataVencimento < $dataLimite) {
-                $fatorVencimento = $dataBaseAntiga->diff($dataVencimento)->days;
+            // Definindo a nova data base (22/02/2025), a partir de quando o fator reinicia em 1000
+            $novaDataBase = new \DateTime('2025-02-22');
+            $dataVenc = $this->getDataVencimento();
+
+            // Calcular a diferença de dias entre a data base inicial (07/10/1997) e a data de vencimento
+            $intervalo = $dataBaseInicial->diff($dataVenc);
+            $diasDiferenca = (int) $intervalo->format('%a'); // diferença em dias
+
+            // Verificar se a data de vencimento é anterior a nova data base (22/02/2025)
+            if ($dataVenc < $novaDataBase) {
+                // Se a data é anterior a 22/02/2025, calcular normalmente com a data base de 07/10/1997
+                $fatorVencimento = $diasDiferenca;
             } else {
-                $fatorVencimento = $dataBaseNova->diff($dataVencimento)->days + 1000;
+                // Para datas a partir de 22/02/2025, recalcular o fator começando de 1000
+                $intervaloNovaBase = $novaDataBase->diff($dataVenc);
+                $diasDiferencaNovaBase = (int) $intervaloNovaBase->format('%a'); // diferença em dias
+                // Somando 1000 para garantir que o fator de vencimento nunca seja menor que 1000
+                $fatorVencimento = 1000 + $diasDiferencaNovaBase;
             }
 
-            return str_pad($fatorVencimento, 4, '0', STR_PAD_LEFT);
+            // Se o fator de vencimento for maior que 9999, reiniciar a contagem a partir de 1000
+            if ($fatorVencimento > 9999) {
+                $fatorVencimento = 1000 + ($fatorVencimento - 10000);
+            }
+
+            return $fatorVencimento;
         } else {
             return '0000';
         }
@@ -1590,7 +1605,7 @@ abstract class BoletoAbstract
      */
     protected static function caracteresDireita($string, $num)
     {
-        return substr($string, strlen($string)-$num, $num);
+        return substr($string, strlen($string) - $num, $num);
     }
 
     /**
@@ -1608,18 +1623,19 @@ abstract class BoletoAbstract
         //  Separacao dos numeros.
         for ($i = strlen($num); $i > 0; $i--) {
             //  Pega cada numero isoladamente.
-            $numeros[$i] = substr($num,$i-1,1);
+            $numeros[$i] = substr($num, $i - 1, 1);
             //  Efetua multiplicacao do numero pelo (falor 10).
             $temp = $numeros[$i] * $fator;
-            $temp0=0;
-            foreach (preg_split('// ',$temp,-1,PREG_SPLIT_NO_EMPTY) as $v){ $temp0+=$v; }
+            $temp0 = 0;
+            foreach (preg_split('// ', $temp, -1, PREG_SPLIT_NO_EMPTY) as $v) {
+                $temp0 += $v;
+            }
             $parcial10[$i] = $temp0; // $numeros[$i] * $fator;
             //  Monta sequencia para soma dos digitos no (modulo 10).
             $numtotal10 += $parcial10[$i];
             if ($fator == 2) {
                 $fator = 1;
-            }
-            else {
+            } else {
                 // Intercala fator de multiplicacao (modulo 10).
                 $fator = 2;
             }
@@ -1642,7 +1658,7 @@ abstract class BoletoAbstract
      * @see Documentação em http://www.febraban.org.br/Acervo1.asp?id_texto=195&id_pagina=173&palavra=
      * @return array Retorna um array com as chaves 'digito' e 'resto'
      */
-    protected static function modulo11($num, $base=9)
+    protected static function modulo11($num, $base = 9)
     {
         $fator = 2;
 
@@ -1650,7 +1666,7 @@ abstract class BoletoAbstract
         // Separacao dos numeros.
         for ($i = strlen($num); $i > 0; $i--) {
             //  Pega cada numero isoladamente.
-            $numeros[$i] = substr($num,$i-1,1);
+            $numeros[$i] = substr($num, $i - 1, 1);
             //  Efetua multiplicacao do numero pelo falor.
             $parcial[$i] = $numeros[$i] * $fator;
             //  Soma dos digitos.
@@ -1666,7 +1682,7 @@ abstract class BoletoAbstract
             // Remainder.
             'resto'  => $soma % 11,
         );
-        if ($result['digito'] == 10){
+        if ($result['digito'] == 10) {
             $result['digito'] = 0;
         }
         return $result;
